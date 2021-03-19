@@ -1,0 +1,80 @@
+# Load the ISLR package
+library(ISLR)
+attach(Carseats)
+names(Carseats)
+## [1] "Sales" "CompPrice" "Income" "Advertising" "Population"
+## [6] "Price" "ShelveLoc" "Age" "Education" "Urban"
+## [11] "US"
+dim(Carseats)
+## [1] 400 11
+(a) Randomly split the data set into a training set (75%) and a test set (25%).
+set.seed(1)
+train=sample(nrow(Carseats),nrow(Carseats)*3/4)
+(b) Fit a regression tree to the training set. Plot the tree, and interpret the results. What test error rate
+do you obtain?
+library(tree)
+carseats.tree=tree(Sales~.,data=Carseats[train,])
+plot(carseats.tree)
+text(carseats.tree,cex=0.5)
+
+carseats.tree
+## node), split, n, deviance, yval
+## * denotes terminal node
+##
+## 1) root 300 2385.000 7.640
+## 2) ShelveLoc: Bad,Medium 226 1349.000 6.818
+## 4) Price < 105.5 74 389.300 8.314
+## 8) Age < 49.5 26 83.180 9.914
+## 16) Income < 61 9 10.930 8.329 *
+## 17) Income > 61 17 37.660 10.750 *
+## 9) Age > 49.5 48 203.500 7.447
+## 18) Price < 91.5 16 36.900 9.043 *
+## 19) Price > 91.5 32 105.400 6.649
+## 38) CompPrice < 123.5 24 52.760 5.966 *
+## 39) CompPrice > 123.5 8 7.882 8.699 *
+## 5) Price > 105.5 152 713.400 6.089
+## 10) CompPrice < 124.5 53 191.000 4.990
+## 20) Age < 33 11 26.100 6.882 *
+## 21) Age > 33 42 115.200 4.494 *
+## 11) CompPrice > 124.5 99 424.000 6.678
+## 22) Price < 126.5 45 134.500 7.667
+## 44) Advertising < 3.5 25 56.830 6.689 *
+## 45) Advertising > 3.5 20 23.870 8.890 *
+## 23) Price > 126.5 54 208.700 5.854
+## 46) CompPrice < 147.5 40 147.000 5.384
+2## 92) Advertising < 13.5 35 105.000 5.076 *
+## 93) Advertising > 13.5 5 15.470 7.538 *
+## 47) CompPrice > 147.5 14 27.620 7.198 *
+## 3) ShelveLoc: Good 74 416.300 10.150
+## 6) Price < 109.5 27 68.300 12.040 *
+## 7) Price > 109.5 47 196.800 9.067
+## 14) Advertising < 0.5 17 42.990 7.835 *
+## 15) Advertising > 0.5 30 113.400 9.765
+## 30) Income < 35 5 12.260 7.552 *
+## 31) Income > 35 25 71.720 10.210
+## 62) Age < 39.5 7 7.548 11.940 *
+## 63) Age > 39.5 18 35.060 9.535 *
+Apply the model on the test set and compute the test errors:
+carseats.pred=predict(carseats.tree,Carseats[-train,])
+mean((Carseats$Sales[-train]-carseats.pred)^2)
+## [1] 4.910268
+(c) Use cross-validation in order to determine the optimal level of tree complexity. Does pruning the tree
+improve the test error rate?
+set.seed(5)
+cvout=cv.tree(carseats.tree)
+plot(cvout$size,cvout$dev,type="b")
+
+
+mindev=which.min(cvout$dev)
+minsize=cvout$size[mindev]
+minsize
+## [1] 16
+carseats.prune=prune.tree(carseats.tree, best=minsize)
+plot(carseats.prune)
+text(carseats.prune,cex=0.5)
+
+carseats.prune
+
+Apply the best model on the test set and compute the test errors:
+carseats.best.pred=predict(carseats.prune,Carseats[-train,])
+mean((Carseats$Sales[-train]-carseats.best.pred)^2)
