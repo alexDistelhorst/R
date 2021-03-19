@@ -1,0 +1,113 @@
+# Sentiment analysis Using R
+## Lexicon-based Sentiment Analysis
+
+First, install the following packages we will use later for data manipulation. 
+```{r eval=FALSE}
+install.packages("dplyr")
+install.packages("tidyr")
+```
+
+Load the two packages: 
+```{r}
+library(dplyr)
+library(tidyr)
+```
+
+Read the csv data file. 
+```{r}
+reviews <- read.csv("MovieReviews.csv", header = TRUE, encoding="UTF-8")
+
+# Convert the "text" column from factor to character. 
+# Add a column review_no to each document. 
+reviews <- reviews %>% 
+  as_tibble() %>%
+  mutate(text=as.character(text)) %>%
+  mutate(review_no = row_number())
+```
+
+Install the packages, tidytext and textdata, which contain several sentiment lexicons. 
+
+```{r eval=FALSE}
+install.packages("tidytext")
+install.packages("textdata")
+```
+
+Load these two packages. 
+```{r}
+library(tidytext)
+library(textdata)
+```
+
+To make word counting easier, we convert the original text data to a "tidy" format. 
+```{r}
+tidy_reviews <- reviews %>%
+  unnest_tokens(word, text)
+
+tidy_reviews
+```
+
+The tidytext package includes three general-purpose lexicons: 
+
+* `AFINN` from [Finn Årup Nielsen](http://www2.imm.dtu.dk/pubdb/views/publication_details.php?id=6010),
+* `bing` from [Bing Liu and collaborators](https://www.cs.uic.edu/~liub/FBS/sentiment-analysis.html), and
+* `nrc` from [Saif Mohammad and Peter Turney](http://saifmohammad.com/WebPages/NRC-Emotion-Lexicon.htm).
+
+```{r}
+# At this step, you may need to respond in the Console to install some of the lexicons. 
+get_sentiments("afinn")
+get_sentiments("bing")
+get_sentiments("nrc")
+```
+
+With data in a tidy format, sentiment analysis can be done as an inner join. Then, we can use the same pattern with `count()`, `spread()`, and `mutate()` to find the net sentiment in each of these sections of text.
+
+```{r}
+sentiment_scores <- tidy_reviews %>% 
+  inner_join(get_sentiments("bing"), by="word") %>%
+  count(review_no, sentiment) %>%
+  spread(sentiment, n, fill = 0) %>%
+  select(review_no, positive, negative) %>%
+  mutate(sentiment = positive - negative)
+
+sentiment_scores
+```
+
+By "review_no", we can join this table with our origial data of reviews with the sentiment scores. 
+```{r}
+review_sentiments <- reviews %>%
+  inner_join(sentiment_scores, by="review_no")
+
+review_sentiments
+```
+
+We now have an estimate of the net sentiment (positive - negative) in each chunk of the novel text for each sentiment lexicon. Let's bind them together and visualize them in a chart.
+
+```{r}
+library(ggplot2)
+review_sentiments %>%
+  ggplot(aes(class, sentiment, color=class)) +
+  geom_boxplot()
+```
+
+Next, let's create a wordcload to show the most common words in these movie reviews. 
+```{r}
+library(wordcloud)
+
+tidy_reviews %>%
+  anti_join(stop_words) %>%  # Use anti_join() to remove stopwords. 
+  count(word) %>%
+  with(wordcloud(word, n, max.words = 100))
+```
+
+What are the words heavily used in positive reviews vs. negative reviews? We can use the comparison.cloud() function, which takes a matrix as input.  
+```{r}
+#install.packages("reshape2")
+library(reshape2)
+
+tidy_reviews %>%
+  inner_join(get_sentiments("bing"), by="word") %>%
+  count(word, sentiment, sort = TRUE) %>%
+  acast(word ~ sentiment, value.var = "n", fill = 0) %>%
+  comparison.cloud(colors = c("gray20", "gray80"),
+                   max.words = 100)
+```
