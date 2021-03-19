@@ -1,0 +1,66 @@
+This question involves the use of simple linear regression on the Auto data set.
+library(ISLR)
+attach(Auto)
+
+(a) Use the lm() function to perform a simple linear regression with mpg as the response and horsepower as
+the predictor. Use the summary() function to print the results. Comment on the output. For example:
+
+mpg.fit=lm(mpg~horsepower)
+summary(mpg.fit)
+
+iv. What is the predicted mpg associated with a horsepower of 98? What are the associated 95% confidence
+and prediction intervals?
+predict(mpg.fit,data.frame(horsepower=98),interval="confidence")
+
+predict(mpg.fit,data.frame(horsepower=98),interval="prediction")
+
+plot(horsepower,mpg)
+abline(mpg.fit)
+
+(c) Use the plot() function to produce diagnostic plots of the least squares regression fit. Comment on any
+problems you see with the fit.
+par(mfrow=c(2,2))
+plot(mpg.fit)
+
+
+This question involves the use of multiple linear regression on the Auto data set.
+(a) Produce a scatterplot matrix which includes all of the variables in the data set.
+plot(Auto)
+
+b) Compute the matrix of correlations between the variables using the function cor(). You will need to
+exclude the name variable, which is qualitative. (Hint: name is the 9th variable in Auto)
+names(Auto)
+
+cor(Auto[,-9])
+
+c) Use the lm() function to perform a multiple linear regression with mpg as the response and all other
+variables except name as the predictors. Use the summary() function to print the results.
+# Origin of car (1. American, 2. European, 3. Japanese)
+# Need to convert it to factor:
+Auto$origin=as.factor(origin)
+mpg.fit2=lm(mpg~.-name,Auto)
+summary(mpg.fit2)
+
+d) Use the plot() function to produce diagnostic plots of the linear regression fit. Comment on any
+problems you see with the fit. Do the residual plots suggest any unusually large outliers? Does the
+leverage plot identify any observations with unusually high leverage?
+par(mfrow=c(2,2))
+plot(mpg.fit2)
+
+e) Use the * and : symbols to fit linear regression models with interaction effects. Do any interactions
+appear to be statistically significant?
+mpg.fit3=lm(mpg~(displacement+horsepower+weight+year+origin)^2,Auto)
+summary(mpg.fit3)
+
+f) Try transformations of the following two variables: horsepower and weight using log(X),
+√
+X, or X2
+.
+Examine the plots between the residuals and each of the two variables first before considering any
+transformations.
+plot(~mpg+horsepower+weight)
+
+plot(horsepower,mpg.fit2$residuals)
+
+
+
