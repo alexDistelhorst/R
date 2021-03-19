@@ -1,0 +1,117 @@
+This problem has to do with odds.
+(a) On average, what fraction of people with an odds of 0.37 of defaulting on their credit card payment will
+in fact default?
+# Hint: odds(X)=P(X)/[1-P(X)]. If odds(X)=0.37, what is P(X)?
+# Write some R code below to calculate P(X):
+0.37/(1+0.37)
+
+b) Suppose that an individual has a 16% chance of defaulting on her credit card payment. What are the
+odds that she will default?
+# Write some R code below to calculate odds(X):
+0.16/(1-0.16)
+
+This question should be answered using the Weekly data set, which is part of the ISLR package. This data is
+similar in nature to the Smarket data from this chapter’s lab, except that it contains 1,089 weekly returns for
+21 years, from the beginning of 1990 to the end of 2010.
+library(ISLR)
+names(Weekly)
+
+dim(Weekly)
+
+attach(Weekly)
+
+summary(Weekly)
+ 
+plot(Weekly)
+
+b) Use the full data set to perform a logistic regression with Direction as the response and the five lag
+variables plus Volume as predictors. Use the summary function to print the results. Do any of the
+predictors appear to be statistically significant? If so, which ones?
+library(MASS)
+weekly.fit=glm(Direction~.-Year-Today,data=Weekly,family=binomial)
+summary(weekly.fit)
+
+c) Compute the confusion matrix and overall fraction of correct predictions. Explain what the confusion
+matrix is telling you about the types of mistakes made by logistic regression.
+# Use 0.5 as the threshold for probability.
+weekly.prob=predict(weekly.fit,type="response")
+weekly.pred=ifelse(weekly.prob>0.5,"Up","Down")
+table(weekly.pred,Direction)
+
+
+d) Now fit the logistic regression model using a training data period from 1990 to 2008, with Lag2 as the
+only predictor. Compute the confusion matrix and the overall fraction of correct predictions for the
+held out data (that is, the data from 2009 and 2010).
+# This line defines a vector of 1089 boolean values, each indicating if the corresponding
+# data point is before 2009 (TRUE) or not (FALSE).
+train=(Year<2009)
+# By specifying "subset=train", only the data points in train with value==TRUE will be
+# used to train the logistic regression model.
+log.fit=glm(Direction~Lag2,subset=train,family=binomial)
+# Since the train is defined by a condition, the test set should be specified by !train
+# (instead of -train). Note that "!" means "not" in R.
+log.prob=predict(log.fit,Weekly[!train,],type="response")
+# Use 0.5 as the threshold for probability to predict the Direction of stock price, "Up"
+# or "Down".
+3log.pred=ifelse(log.prob>0.5,"Up","Down")
+table(log.pred,Direction[!train])
+
+
+e) Repeat (d) using LDA.
+lda.fit=lda(Direction~Lag2,subset=train)
+lda.pred=predict(lda.fit, Weekly[!train,])
+table(lda.pred$class, Direction[!train])
+
+f) Repeat (d) using QDA.
+qda.fit=qda(Direction~Lag2,subset=train)
+qda.pred=predict(qda.fit, Weekly[!train,])
+table(qda.pred$class, Direction[!train])
+
+g) Repeat (d) using KNN with K = 1.
+Hint: The first two arguments in the function knn(), x.train and x.test should be a matrix while the third
+argument, y.train is a vector.
+library(class)
+# Since we have only one predictor Lag2 (which is a vector), we need to convert this
+# vector into a matrix using the function as.matrix() as follows:
+x.train=as.matrix(Lag2[train])
+x.test=as.matrix(Lag2[!train])
+# Define the class labels for the training set:
+y.train=Direction[train]
+# Below, use the knn() function to predict the labels for x.test:
+knn.pred=knn(x.train,x.test,y.train,k=1)
+# Examine the confusion matrix:
+table(knn.pred,Direction[!train])
+
+Hint: Use Lag1 and Lag2 as predictors. Repeat (d)~(g).
+log.fit2=glm(Direction~Lag1+Lag2,data=Weekly[train,],family=binomial)
+log.prob2=predict(log.fit2,Weekly[!train,],type="response")
+log.pred2=ifelse(log.prob2>0.5,"Up","Down")
+table(log.pred2,Direction[!train])
+##
+## log.pred2 Down Up
+## Down 7 8
+## Up 36 53
+lda.fit2=lda(Direction~Lag1+Lag2,Weekly[train,])
+lda.pred2=predict(lda.fit2, Weekly[!train,])
+table(lda.pred2$class, Direction[!train])
+##
+## Down Up
+## Down 7 8
+## Up 36 53
+qda.fit2=qda(Direction~Lag1+Lag2,Weekly[train,])
+qda.pred2=predict(qda.fit2, Weekly[!train,])
+table(qda.pred2$class, Direction[!train])
+##
+## Down Up
+## Down 7 10
+## Up 36 51
+x.train=Weekly[train,2:3]
+x.test=Weekly[!train,2:3]
+y.train=Direction[train]
+knn.pred2=knn(x.train,x.test,y.train,k=3)
+table(knn.pred2,Direction[!train])
+##
+## knn.pred2 Down Up
+## Down 22 29
+## Up 21 32
+
